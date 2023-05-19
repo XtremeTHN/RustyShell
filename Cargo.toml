@@ -6,5 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rustyline = { version = "11.0.0", features = ["with-file-history"] }
-shell-words = "1.1.0"
+chrono = "0.4.24"
+colored = "2.0.0"
+directories = "5.0.1"
+log = "0.4.17"
+pyo3 = { version = "0.18.3", features = ["auto-initialize"] }
+rustyline = "11.0.0"
+serde_json = "1.0.96"
+simplelog = "0.12.1"
+walkdir = "2.3.3"
