@@ -14,3 +14,4 @@ class Main:
     config = os.path.join(paths.conf_path, "conf.json")
     set_value(config, {'data':True})
     print(get_config(config))
+    print(sys)

@@ -1,5 +1,5 @@
-use std::{fs::File, io::Read, process::exit, path::PathBuf};
-use pyo3::{types::PyDict, prelude::*, exceptions};
+use std::{fs::File, io::Read, process::exit, path::PathBuf, fmt::format};
+use pyo3::{types::{PyDict, PyTuple, IntoPyDict}, prelude::*, exceptions};
 use directories::ProjectDirs;
 use serde_json::Value;
 use log::{info, error, warn, debug};
@@ -46,8 +46,6 @@ impl RustyShellPaths {
 
 
 pub fn load_python_plugin_init_files() {
-    println!("{}: If you want to add python scripts, you need to specify the files that will be loaded in the config file", "Info".blue());
-    println!("{}: Loading config file...", "Info".green());
     info!("Opening configuration...");
     let mut conf_obj = File::open("config/preferences.json").expect("El archivo de configuracion no existe");
     let mut buffer = String::from("");
@@ -57,13 +55,11 @@ pub fn load_python_plugin_init_files() {
     }
     let config: Value = serde_json::from_str(&buffer).unwrap_or_else(|err| {
         error!("Error while loading configuration values in config file: {}", err);
-        println!("{}: Error while loading config values", "Error".red());
         exit(1);
     });
     let mut files: Vec<String>= vec![];
     if let Some(pyfiles) = config["py_files"].as_array() {
         info!("Reading python files...");
-        println!("{}: Reading each files", "Info".green());
         for x in pyfiles {
             info!("Reading {}", x);
             let mut file_obj = File::open(x.as_str().unwrap()).expect("There's a non existent file in the config");
@@ -72,9 +68,12 @@ pub fn load_python_plugin_init_files() {
             files.push(file_buffer);
         }
     } else {
-        println!("{}: By an unkown reason, a entry in the config file doesn't exists", "Error".red());
+        println!("{}", "Configuration error 1!".red());
+        error!("'py_files' key in the config file doesn't exist's");
         exit(10);
     }
+
+    let error_code = 0;
 
     for x in files {
         Python::with_gil(|py| {
@@ -82,54 +81,78 @@ pub fn load_python_plugin_init_files() {
 
             let foo_module = PyModule::new(py, "RustyShellUtils").unwrap_or_else(|exc| {
                 error!("Cannot create shell module. Exit Code: 20");
-                println!("{}: Cannot create api module for the plugin, exiting...", "Fatal error".red());
                 exit(20);
             });
 
             foo_module.add_class::<RustyShellPaths>().unwrap_or_else(|_| {
                 error!("Cannot create shell module. Exit Code: 30");
-                println!("{}: Cannot add the api class for the plugin, exiting...", "Fatal error".red());
                 exit(30);
             });
     
             // Import and get sys.modules
             let sys = PyModule::import(py, "sys").unwrap_or_else(|_| {
                 error!("Cannot create shell module. Exit Code: 40");
-                println!("{}: Cannot add the api module to sys.modules", "Fatal error".red());
                 exit(40)
             });
             let py_modules: &PyDict = sys.getattr("modules").unwrap_or_else(|_| {
                 error!("Cannot create shell module. Exit Code: 51");
-                println!("{}: Cannot load the module into the file. Err 1.", "Fatal error".red());
                 exit(51);
             }).downcast().unwrap_or_else(|_| {
                 error!("Cannot create shell module. Exit Code: 52");
-                println!("{}: Cannot load the module into the file. Err 2.", "Fatal error".red());
                 exit(52);
             });
     
             // Insert foo into sys.modules
             if let Err(py_err) = py_modules.set_item("RustyShellUtils", foo_module) {
                 error!("Cannot create shell module. Exit Code: 70");
-                println!("{}: Cannot load the module into the file.", "Fatal error".red());
-                println!("{}: Exception:", "Error".red());
-                py_err.print(py);
+                let tb = py_err.traceback(py).unwrap();
+                
+                let temp_dict = PyDict::new(py);
+                let wrapped_tb = PyTuple::new(py, vec![tb]);
+
+                let formated_tb = py.import("traceback").unwrap()
+                .call_method("format_tb", wrapped_tb, Some(temp_dict)).unwrap()
+                .extract::<String>().unwrap();
+                error!("{}", formated_tb);
+                info!("{}", py_err.value(py));
                 exit(70);
             };
     
             // Now we can import + run our python code
-            let _: Py<PyAny> = PyModule::from_code(py, &x, "", "").unwrap_or_else(|exc| {
+            let _: Py<PyAny> = PyModule::from_code(py, &x, "", "").unwrap_or_else(|py_err| {
                 error!("Cannot create shell module. Exit Code: 80");
-                println!("{}: An error has ocurred while trying to execute python code of the plugin", "Fatal error".red());
-                exc.print(py);
+                let tb = py_err.traceback(py).unwrap();
+                
+                let temp_dict = PyDict::new(py);
+                let wrapped_tb = PyTuple::new(py, vec![tb]);
+                let binded_locals = PyDict::new(py);
+                
+
+                let formated_tb = py.import("traceback").unwrap()
+                .call_method("format_tb", wrapped_tb, Some(temp_dict)).unwrap();
+                if let Err(err) = binded_locals.set_item("formated_tb", formated_tb) {
+                    error!("Cannot run python code from file {}. Error: {}", x, err);
+                    
+                };
+                let ftb = py.eval("''.join(formated_tb)", None, Some(binded_locals));
+
+                error!("{:?}", ftb.unwrap());
+                info!("{}", py_err.value(py));
                 exit(80);
-            }).getattr("Main").unwrap_or_else(|exc| {
+            }).getattr("Main").unwrap_or_else(|py_err| {
                 error!("Cannot create shell module. Exit Code: 81");
-                println!("{}: An error has ocurred while trying to execute python code of a plugin", "Fatal error".red());
-                println!("{}: Exception:", "Error".red());
-                exc.print(py);
+                /*let tb = py_err.traceback(py).unwrap();
+                
+                let temp_dict = PyDict::new(py);
+                let wrapped_tb = PyTuple::new(py, vec![tb]);
+
+                let formated_tb = py.import("traceback").unwrap()
+                .call_method("format_tb", wrapped_tb, Some(temp_dict)).unwrap()
+                .extract::<String>().unwrap();*/
+                error!("{}", py_err.get_type(py));
+                error!("{}", py_err.value(py));
                 exit(81);
             }).into();
-        })
-    }
+        });
+    };
 }
