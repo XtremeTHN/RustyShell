@@ -44,7 +44,7 @@ fn main() {
                     println!("Debug: Cannot parse command: {}", err);
                     continue;
                 }
-                let shell_cmd = shell_cmd.unwrap();
+                let mut shell_cmd = shell_cmd.unwrap();
                 
                 if let Some(unknown_cmd) = shell_cmd.get(0) {
                     match unknown_cmd.as_str() {
@@ -81,7 +81,9 @@ fn main() {
                         }
 
                         "exit" => break,
-                        &_ => println!("No such command '{}'", shell_cmd.get(0).unwrap()),
+                        &_ => {
+                            run_external_command(&shell_cmd[0], Some(shell_cmd.clone()))
+                        }
                     }
                 }
             },

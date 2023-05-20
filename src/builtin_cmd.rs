@@ -1,8 +1,8 @@
 use crossterm::{execute, terminal};
 use crossterm::cursor::MoveTo;
-use std::io::{self, Write};
+use std::{env, process::{Command, Stdio}, path::PathBuf};
+use std::io::{self, Write, BufRead};
 use term_size::dimensions;
-use std::path::Path;
 use colored::*;
 
 pub fn clear_screen() -> io::Result<()> {
@@ -13,7 +13,7 @@ pub fn clear_screen() -> io::Result<()> {
 }
 
 pub fn list_cmd(work_dir: String) -> Result<(), String> {
-    let work_dir_convertion = Path::new(&work_dir);
+    let work_dir_convertion = PathBuf::from(&work_dir);
     let mut colored_vector: Vec<String> = vec![];
     //if let Ok(iterator) = work_dir_convertion.read_dir() {
     match work_dir_convertion.read_dir() {
@@ -56,6 +56,38 @@ pub fn columnize_text(items: &[String]) {
     } else {
         for item in items {
             println!("{}", item);
+        }
+    }
+}
+
+pub fn run_external_command(executable_name: &str, args: Option<Vec<String>>) -> () {
+    if let Some(paths) = env::var_os("PATH") {
+        for path in env::split_paths(&paths) {
+            let executable_path = path.join(executable_name);
+            if executable_path.is_file() {
+                if let Some(mut prog_args) = args.clone() {
+                    prog_args.drain(0..1);
+                    let mut output = Command::new(executable_path)
+                    .args(prog_args)
+                    .stdout(Stdio::piped())
+                    .spawn();
+                    match output {
+                        Ok(mut out) => {
+                            if let Some(stdout) = out.stdout.take() {
+                                let reader = io::BufReader::new(stdout);
+                                for line in reader.lines() {
+                                    if let Ok(line) = line {
+                                        println!("{}", line);
+                                    }
+                                }
+                            }
+                        }
+                        Err(err) => {
+                            println!("Couldn't retrieve the command output");
+                        }
+                    }
+                }
+            }
         }
     }
 }
