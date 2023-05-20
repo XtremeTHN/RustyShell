@@ -1,7 +1,7 @@
 use simplelog::*;
 use colored::*;
 use chrono::{Local, Datelike, Timelike};
-use std::fs::OpenOptions;
+use std::fs::File;
 use std::path::PathBuf;
 
 pub fn init_log(mut data_folder: PathBuf) -> () {
@@ -16,11 +16,7 @@ pub fn init_log(mut data_folder: PathBuf) -> () {
     // Creando archivo
     data_folder.push(file_name);
 
-    let log_file = OpenOptions::new()
-        .create(true)
-        .write(true)
-        .append(true)
-        .open(data_folder);
+    let log_file = File::create(data_folder);
 
     if let Ok(log_file) = log_file {
         // Configura el logger para escribir en el archivo
