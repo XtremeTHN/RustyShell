@@ -1,18 +1,22 @@
 use crossterm::{execute, terminal};
 use crossterm::cursor::MoveTo;
+use log::{info, debug, error};
 use std::{env, process::{Command, Stdio}, path::PathBuf};
 use std::io::{self, Write, BufRead};
 use term_size::dimensions;
 use colored::*;
 
 pub fn clear_screen() -> io::Result<()> {
+    info!("Trying to clear terminal");
     let mut stdout = io::stdout();
     execute!(stdout, terminal::Clear(terminal::ClearType::All), MoveTo(0, 0))?;
     stdout.flush()?;
+    info!("Succes");
     Ok(())
 }
 
 pub fn list_cmd(work_dir: String) -> Result<(), String> {
+    info!("Listing files in {}", work_dir);
     let work_dir_convertion = PathBuf::from(&work_dir);
     let mut colored_vector: Vec<String> = vec![];
     //if let Ok(iterator) = work_dir_convertion.read_dir() {
@@ -39,6 +43,7 @@ pub fn list_cmd(work_dir: String) -> Result<(), String> {
 }
 
 pub fn columnize_text(items: &[String]) {
+    debug!("Columnizing text...");
     if let Some((width, _)) = dimensions() {
         let longest_item_len = items.iter().map(|item| item.len()).max().unwrap_or(0);
         let num_columns = width / (longest_item_len + 2).max(1);
@@ -54,6 +59,7 @@ pub fn columnize_text(items: &[String]) {
             println!();
         }
     } else {
+        error!("Cannot retrieve terminal width. Columnizing without formating...");
         for item in items {
             println!("{}", item);
         }
@@ -61,12 +67,15 @@ pub fn columnize_text(items: &[String]) {
 }
 
 pub fn run_external_command(executable_name: &str, args: Option<Vec<String>>) -> () {
+    debug!("Retrieving global variable PATH...");
     if let Some(paths) = env::var_os("PATH") {
+        debug!("Spliting paths...");
         for path in env::split_paths(&paths) {
             let executable_path = path.join(executable_name);
             if executable_path.is_file() {
                 if let Some(mut prog_args) = args.clone() {
                     prog_args.drain(0..1);
+                    debug!("Executing program...");
                     let output = Command::new(executable_path)
                     .args(prog_args)
                     .stdout(Stdio::piped())
@@ -83,6 +92,7 @@ pub fn run_external_command(executable_name: &str, args: Option<Vec<String>>) ->
                             }
                         }
                         Err(err) => {
+                            error!("Output error: {}", err);
                             println!("Couldn't retrieve the command output: {}", err);
                         }
                     }

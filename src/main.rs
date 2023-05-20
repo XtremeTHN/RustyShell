@@ -82,7 +82,9 @@ fn main() {
 
                         "exit" => break,
                         &_ => {
-                            run_external_command(&shell_cmd[0], Some(shell_cmd.clone()))
+                            let mut sh_cmd = shell_cmd[0].to_string();
+                            sh_cmd.push_str(".exe");
+                            run_external_command(&sh_cmd, Some(shell_cmd.clone()))
                         }
                     }
                 }
