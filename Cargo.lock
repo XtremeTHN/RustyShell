@@ -594,6 +594,7 @@ dependencies = [
  "serde_json",
  "shellwords",
  "simplelog",
+ "sys",
  "term_size",
  "walkdir",
 ]
@@ -763,6 +764,12 @@ dependencies = [
  "quote",
  "unicode-ident",
 ]
+
+[[package]]
+name = "sys"
+version = "0.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e788d0b8692abbe8b3818a8b132e081438264f285170188cb214a5b790c37ea1"
 
 [[package]]
 name = "target-lexicon"

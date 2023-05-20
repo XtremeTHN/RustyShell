@@ -17,5 +17,6 @@ rustyline = { version = "11.0.0", features = ["with-file-history"] }
 serde_json = "1.0.96"
 shellwords = "1.1.0"
 simplelog = "0.12.1"
+sys = "0.0.0"
 term_size = "0.3.2"
 walkdir = "2.3.3"
