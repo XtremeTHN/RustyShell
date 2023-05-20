@@ -67,7 +67,7 @@ pub fn run_external_command(executable_name: &str, args: Option<Vec<String>>) ->
             if executable_path.is_file() {
                 if let Some(mut prog_args) = args.clone() {
                     prog_args.drain(0..1);
-                    let mut output = Command::new(executable_path)
+                    let output = Command::new(executable_path)
                     .args(prog_args)
                     .stdout(Stdio::piped())
                     .spawn();
@@ -83,7 +83,7 @@ pub fn run_external_command(executable_name: &str, args: Option<Vec<String>>) ->
                             }
                         }
                         Err(err) => {
-                            println!("Couldn't retrieve the command output");
+                            println!("Couldn't retrieve the command output: {}", err);
                         }
                     }
                 }

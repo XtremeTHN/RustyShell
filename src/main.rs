@@ -44,7 +44,7 @@ fn main() {
                     println!("Debug: Cannot parse command: {}", err);
                     continue;
                 }
-                let mut shell_cmd = shell_cmd.unwrap();
+                let shell_cmd = shell_cmd.unwrap();
                 
                 if let Some(unknown_cmd) = shell_cmd.get(0) {
                     match unknown_cmd.as_str() {
